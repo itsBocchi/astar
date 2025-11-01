@@ -30,13 +30,10 @@ GREY = (128, 128, 128)
 TURQUOISE = (99, 214, 187)
 DARK_BLUE = (102, 139, 242)      # Blocked zone
 DARK_GREEN = (73, 147, 166)     # Weighted ring zone
- 
 
-class SpotState(enum.Enum):
+
+class SpotKind(enum.Enum):
     Empty = enum.auto()
-
-    Closed = enum.auto()
-    Open = enum.auto()
 
     Barrier = enum.auto()
 
@@ -48,27 +45,40 @@ class SpotState(enum.Enum):
 
     Start = enum.auto()
     End = enum.auto()
+
+    def get_color(self) -> tuple[int, int, int]:
+        match self:
+            case SpotKind.Empty:
+                return WHITE
+            case SpotKind.Barrier:
+                return BLACK
+            case SpotKind.Blocked:
+                return RED
+            case SpotKind.Weighted:
+                return DARK_GREEN
+            case SpotKind.Start:
+                return ORANGE
+            case SpotKind.End:
+                return TURQUOISE
+
+
+class SpotPathState(enum.Enum):
+    Empty = enum.auto()
+
+    Closed = enum.auto()
+    Open = enum.auto()
+
     Path = enum.auto()
 
     def get_color(self) -> tuple[int, int, int]:
         match self:
-            case SpotState.Empty:
+            case SpotPathState.Empty:
                 return WHITE
-            case SpotState.Closed:
+            case SpotPathState.Closed:
                 return DARK_BLUE
-            case SpotState.Open:
+            case SpotPathState.Open:
                 return GREEN
-            case SpotState.Barrier:
-                return BLACK
-            case SpotState.Blocked:
-                return RED
-            case SpotState.Weighted:
-                return DARK_GREEN
-            case SpotState.Start:
-                return ORANGE
-            case SpotState.End:
-                return TURQUOISE
-            case SpotState.Path:
+            case SpotPathState.Path:
                 return PURPLE
 
 
@@ -79,7 +89,8 @@ class Spot:
         self.col = col
         self.x = row * width
         self.y = col * width
-        self.state = SpotState.Empty
+        self.kind = SpotKind.Empty
+        self.path_state = SpotPathState.Empty
         self.neighbors = []
         self.width = width
         self.total_rows = total_rows
@@ -89,68 +100,77 @@ class Spot:
 
     def is_empty(self):
         if IS_MODIFIED:
-            return self.state == SpotState.Empty
-        return self.state in (SpotState.Barrier, SpotState.Blocked, SpotState.Weighted)
+            return self.kind == SpotKind.Empty
+        return self.kind in (SpotKind.Barrier, SpotKind.Blocked, SpotKind.Weighted)
 
     def is_closed(self):
-        return self.state == SpotState.Closed
+        return self.path_state == SpotPathState.Closed
 
     def is_open(self):
-        return self.state == SpotState.Open
+        return self.path_state == SpotPathState.Open
 
     def is_barrier(self):
         if IS_MODIFIED:
-            return self.state == SpotState.Barrier
+            return self.kind == SpotKind.Barrier
         return False
 
     def is_blocked(self):
         if IS_MODIFIED:
-            return self.state == SpotState.Blocked
+            return self.kind == SpotKind.Blocked
         return False
 
     def is_weighted(self):
         if IS_MODIFIED:
-            return self.state == SpotState.Weighted
+            return self.kind == SpotKind.Weighted
         return False
 
     def is_start(self):
-        return self.state == SpotState.Start
+        return self.kind == SpotKind.Start
 
     def is_end(self):
-        return self.state == SpotState.End
+        return self.kind == SpotKind.End
 
     def is_path(self):
-        return self.state == SpotState.Path
+        return self.path_state == SpotPathState.Path
 
-    def reset(self):
-        self.state = SpotState.Empty
+    def reset_all(self):
+        self.kind = SpotKind.Empty
+        self.path_state = SpotPathState.Empty
+
+    def reset_path_state(self):
+        self.path_state = SpotPathState.Empty
 
     def make_start(self):
-        self.state = SpotState.Start
+        self.kind = SpotKind.Start
 
     def make_closed(self):
-        self.state = SpotState.Closed
+        self.path_state = SpotPathState.Closed
 
     def make_open(self):
-        self.state = SpotState.Open
+        self.path_state = SpotPathState.Open
 
     def make_barrier(self):
-        self.state = SpotState.Barrier
+        self.kind = SpotKind.Barrier
 
     def make_blocked(self):
-        self.state = SpotState.Blocked
+        self.kind = SpotKind.Blocked
 
     def make_weighted(self):
-        self.state = SpotState.Weighted
+        self.kind = SpotKind.Weighted
 
     def make_end(self):
-        self.state = SpotState.End
+        self.kind = SpotKind.End
 
     def make_path(self):
-        self.state = SpotState.Path
+        self.path_state = SpotPathState.Path
+
+    def get_color(self) -> tuple[int, int, int]:
+        if self.kind != SpotKind.Empty:
+            return self.kind.get_color()
+        return self.path_state.get_color()
 
     def draw(self, win):
-        color = self.state.get_color()
+        color = self.get_color()
         pygame.draw.rect(win, color, (self.x, self.y, self.width, self.width))
 
     def update_neighbors(self, grid):
@@ -171,15 +191,15 @@ class Spot:
         return False
 
     def __str__(self):
-        return f"Spot<({self.row}, {self.col}, {self.state})>"
+        return f"Spot<({self.row}, {self.col}, {self.kind})>"
 
 def clear_grid(start, end, grid):
     for row in grid:
         for spot in row:
-            if spot.state in (SpotState.Blocked, SpotState.Barrier):
-                continue
+            # if spot.kind in (SpotKind.Blocked, SpotKind.Barrier):
+            #     continue
             if spot != start and spot != end:
-                spot.reset()
+                spot.reset_path_state()
 
 # --- HEURISTIC FUNCTION (OCTILE DISTANCE) ---
 def distance(p1, p2):
@@ -390,7 +410,7 @@ def main(win, width):
                 if row < 0 or row >= len(grid) or col < 0 or col >= len(grid[row]):
                     continue
                 spot = grid[row][col]
-                spot.reset()
+                spot.reset_all()
                 if spot == start:
                     start = None
                 elif spot == end:
