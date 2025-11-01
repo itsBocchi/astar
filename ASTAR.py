@@ -6,20 +6,29 @@ from queue import PriorityQueue
 WIDTH = 800
 WIN = pygame.display.set_mode((WIDTH, WIDTH))
 pygame.display.set_caption("A* Pathfinding with Diagonal Movement & Weighted Zones")
+pygame.init()
+font = pygame.font.Font(None, 20)
+small_font = pygame.font.Font(None, 16)
+
+# Global variables to persist costs
+last_g_score = None
+last_lowest_cost = float("inf")
 
 # --- COLORS ---
 RED = (255, 0, 0)
-GREEN = (0, 255, 0)
+GREEN = (163, 255, 183)
 BLUE = (0, 255, 0)
 YELLOW = (255, 255, 0)
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
-PURPLE = (128, 0, 128)
+PURPLE = (247, 146, 215)
 ORANGE = (255, 165, 0)
 GREY = (128, 128, 128)
-TURQUOISE = (64, 224, 208)
-DARK_BLUE = (0, 0, 128)      # Blocked zone
-DARK_GREEN = (0, 128, 0)     # Weighted ring zone
+TURQUOISE = (99, 214, 187)
+DARK_BLUE = (102, 139, 242)      # Blocked zone
+DARK_GREEN = (73, 147, 166)     # Weighted ring zone
+ 
+
 
 # --- SPOT CLASS ---
 class Spot:
@@ -127,7 +136,8 @@ def reconstruct_path(came_from, current, draw):
 
 
 # --- A* ALGORITHM ---
-def algorithm(draw, grid, start, end):
+def algorithm(draw_func, grid, start, end):
+    global last_g_score, last_lowest_cost
     count = 0
     open_set = PriorityQueue()
     open_set.put((0, count, start))
@@ -137,6 +147,7 @@ def algorithm(draw, grid, start, end):
     f_score = {spot: float("inf") for row in grid for spot in row}
     f_score[start] = h(start.get_pos(), end.get_pos())
     open_set_hash = {start}
+    current_lowest = 0
 
     while not open_set.empty():
         for event in pygame.event.get():
@@ -146,9 +157,12 @@ def algorithm(draw, grid, start, end):
 
         current = open_set.get()[2]
         open_set_hash.remove(current)
+        current_lowest = g_score[current]
 
         if current == end:
-            reconstruct_path(came_from, end, draw)
+            last_g_score = g_score.copy()
+            last_lowest_cost = g_score[end]
+            reconstruct_path(came_from, end, lambda: draw_func(g_score, current_lowest))
             end.make_end()
             return True
 
@@ -171,10 +185,12 @@ def algorithm(draw, grid, start, end):
                     open_set_hash.add(neighbor)
                     neighbor.make_open()
 
-        draw()
+        draw_func(g_score, current_lowest)
         if current != start:
             current.make_closed()
 
+    last_g_score = g_score.copy()
+    last_lowest_cost = current_lowest
     return False
 
 
@@ -210,13 +226,30 @@ def draw_grid(win, rows, width):
         for j in range(rows):
             pygame.draw.line(win, GREY, (j * gap, 0), (j * gap, width))
 
+def draw_costs(win, grid, g_score):
+    """Draw g_score costs on explored cells"""
+    for row in grid:
+        for spot in row:
+            if spot in g_score and g_score[spot] != float("inf") and (spot.is_closed() or spot.is_open() or spot.color == PURPLE):
+                cost_text = small_font.render(f"{g_score[spot]:.1f}", True, BLACK)
+                text_rect = cost_text.get_rect(center=(spot.x + spot.width//2, spot.y + spot.width//2))
+                win.blit(cost_text, text_rect)
 
-def draw(win, grid, rows, width):
+def draw_lowest_cost(win, g_score, current_lowest):
+    """Draw lowest cost in top right corner"""
+    cost_text = font.render(f"Lowest Cost: {current_lowest:.1f}", True, BLACK)
+    win.blit(cost_text, (WIDTH - 200, 10))
+
+
+def draw(win, grid, rows, width, g_score=None, current_lowest=float("inf")):
     win.fill(WHITE)
     for row in grid:
         for spot in row:
             spot.draw(win)
     draw_grid(win, rows, width)
+    if g_score:
+        draw_costs(win, grid, g_score)
+        draw_lowest_cost(win, g_score, current_lowest)
     pygame.display.update()
 
 
@@ -230,6 +263,7 @@ def get_clicked_pos(pos, rows, width):
 
 # --- MAIN LOOP ---
 def main(win, width):
+    global last_g_score, last_lowest_cost
     ROWS = 50
     grid = make_grid(ROWS, width)
     start = None
@@ -238,7 +272,11 @@ def main(win, width):
     started = False
 
     while run:
-        draw(win, grid, ROWS, width)
+        # Draw with persistent costs if available
+        if last_g_score and not started:
+            draw(win, grid, ROWS, width, last_g_score, last_lowest_cost)
+        else:
+            draw(win, grid, ROWS, width)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -286,12 +324,14 @@ def main(win, width):
                             spot.update_neighbors(grid)
 
                     started = True
-                    algorithm(lambda: draw(win, grid, ROWS, width), grid, start, end)
+                    algorithm(lambda g_score, current_lowest: draw(win, grid, ROWS, width, g_score, current_lowest), grid, start, end)
                     started = False
 
                 if event.key == pygame.K_c:
                     start = None
                     end = None
+                    last_g_score = None
+                    last_lowest_cost = float("inf")
                     grid = make_grid(ROWS, width)
 
     pygame.quit()
