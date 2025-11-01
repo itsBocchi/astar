@@ -100,6 +100,11 @@ class Spot:
     def __lt__(self, other):
         return False
 
+def clear_grid(start, end, grid):
+    for row in grid:
+        for spot in row:
+            if spot != start and spot != end and not spot.is_weighted() and not spot.is_barrier():
+                spot.reset()
 
 # --- HEURISTIC FUNCTION (OCTILE DISTANCE) ---
 def h(p1, p2):
@@ -274,6 +279,7 @@ def main(win, width):
 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE and start and end:
+                    clear_grid(start, end, grid)
                     surround_blocked_with_weighted(grid, radius=2)
                     for row in grid:
                         for spot in row:
