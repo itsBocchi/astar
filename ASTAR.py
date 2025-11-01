@@ -165,6 +165,8 @@ class Spot:
         self.path_state = SpotPathState.Path
 
     def get_color(self) -> tuple[int, int, int]:
+        if self.path_state == SpotPathState.Path:
+            return self.path_state.get_color()
         if self.kind != SpotKind.Empty:
             return self.kind.get_color()
         return self.path_state.get_color()
