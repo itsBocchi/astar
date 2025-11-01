@@ -1,6 +1,7 @@
 import pygame
 import math
 from queue import PriorityQueue
+import enum
 
 # --- WINDOW SETTINGS ---
 WIDTH = 800
@@ -29,6 +30,45 @@ DARK_BLUE = (102, 139, 242)      # Blocked zone
 DARK_GREEN = (73, 147, 166)     # Weighted ring zone
  
 
+class SpotState(enum.Enum):
+    Empty = enum.auto()
+
+    Closed = enum.auto()
+    Open = enum.auto()
+
+    Barrier = enum.auto()
+
+    Blocked = enum.auto()
+    """Fire"""
+
+    Weighted = enum.auto()
+    """Around the fire"""
+
+    Start = enum.auto()
+    End = enum.auto()
+    Path = enum.auto()
+
+    def get_color(self) -> tuple[int, int, int]:
+        match self:
+            case SpotState.Empty:
+                return WHITE
+            case SpotState.Closed:
+                return DARK_BLUE
+            case SpotState.Open:
+                return GREEN
+            case SpotState.Barrier:
+                return BLACK
+            case SpotState.Blocked:
+                return RED
+            case SpotState.Weighted:
+                return DARK_GREEN
+            case SpotState.Start:
+                return ORANGE
+            case SpotState.End:
+                return TURQUOISE
+            case SpotState.Path:
+                return PURPLE
+
 
 # --- SPOT CLASS ---
 class Spot:
@@ -37,7 +77,7 @@ class Spot:
         self.col = col
         self.x = row * width
         self.y = col * width
-        self.color = WHITE
+        self.state = SpotState.Empty
         self.neighbors = []
         self.width = width
         self.total_rows = total_rows
@@ -45,56 +85,63 @@ class Spot:
     def get_pos(self):
         return self.row, self.col
 
+    def is_empty(self):
+        return self.state == SpotState.Empty
+
     def is_closed(self):
-        return self.color == DARK_BLUE
+        return self.state == SpotState.Closed
 
     def is_open(self):
-        return self.color == GREEN
+        return self.state == SpotState.Open
 
     def is_barrier(self):
-        return self.color == BLACK
+        return self.state == SpotState.Barrier
 
     def is_blocked(self):
-        return self.color == RED
+        return self.state == SpotState.Blocked
 
     def is_weighted(self):
-        return self.color == DARK_GREEN
+        return self.state == SpotState.Weighted
 
     def is_start(self):
-        return self.color == ORANGE
+        return self.state == SpotState.Start
 
     def is_end(self):
-        return self.color == TURQUOISE
+        return self.state == SpotState.End
+
+    def is_path(self):
+        return self.state == SpotState.Path
 
     def reset(self):
-        self.color = WHITE
+        self.state = SpotState.Empty
 
     def make_start(self):
-        self.color = ORANGE
+        self.state = SpotState.Start
 
     def make_closed(self):
-        self.color = DARK_BLUE
+        self.state = SpotState.Closed
 
     def make_open(self):
-        self.color = GREEN
+        self.state = SpotState.Open
 
     def make_barrier(self):
-        self.color = BLACK
+        self.state = SpotState.Barrier
 
     def make_blocked(self):
-        self.color = RED
+        self.state = SpotState.Blocked
 
     def make_weighted(self):
-        self.color = DARK_GREEN
+        self.state = SpotState.Weighted
 
     def make_end(self):
-        self.color = TURQUOISE
+        self.state = SpotState.End
 
     def make_path(self):
-        self.color = PURPLE
+        self.state = SpotState.Path
 
     def draw(self, win):
-        pygame.draw.rect(win, self.color, (self.x, self.y, self.width, self.width))
+        color = self.state.get_color()
+        pygame.draw.rect(win, color, (self.x, self.y, self.width, self.width))
 
     def update_neighbors(self, grid):
         """Include 8 directions (diagonal movement)"""
@@ -114,7 +161,7 @@ class Spot:
         return False
 
     def __str__(self):
-        return f"Spot<({self.row}, {self.col}, color: {self.color})>"
+        return f"Spot<({self.row}, {self.col}, {self.state})>"
 
 def clear_grid(start, end, grid):
     for row in grid:
@@ -208,12 +255,12 @@ def surround_blocked_with_weighted(grid, radius=2):
     rows = len(grid)
     for row in range(rows):
         for col in range(rows):
-            if grid[row][col].color == RED:
+            if grid[row][col].is_blocked():
                 for dr in range(-radius, radius + 1):
                     for dc in range(-radius, radius + 1):
                         nr, nc = row + dr, col + dc
                         if 0 <= nr < rows and 0 <= nc < rows:
-                            if grid[nr][nc].color == WHITE:  # Only change empty tiles
+                            if grid[nr][nc].is_empty():  # Only change empty tiles
                                 grid[nr][nc].make_weighted()
 
 
@@ -239,7 +286,7 @@ def draw_costs(win, grid, g_score):
     """Draw g_score costs on explored cells"""
     for row in grid:
         for spot in row:
-            if spot in g_score and g_score[spot] != float("inf") and (spot.is_closed() or spot.is_open() or spot.color == PURPLE):
+            if spot in g_score and g_score[spot] != float("inf") and (spot.is_closed() or spot.is_open() or spot.is_path()):
                 cost_text = small_font.render(f"{g_score[spot]:.1f}", True, BLACK)
                 text_rect = cost_text.get_rect(center=(spot.x + spot.width//2, spot.y + spot.width//2))
                 win.blit(cost_text, text_rect)
