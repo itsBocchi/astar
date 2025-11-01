@@ -5,6 +5,7 @@ import enum
 
 # --- WINDOW SETTINGS ---
 WIDTH = 800
+ALPHA = 10
 WIN = pygame.display.set_mode((WIDTH, WIDTH))
 pygame.display.set_caption("A* Pathfinding with Diagonal Movement & Weighted Zones")
 pygame.init()
@@ -165,8 +166,6 @@ class Spot:
         self.path_state = SpotPathState.Path
 
     def get_color(self) -> tuple[int, int, int]:
-        if self.path_state == SpotPathState.Path:
-            return self.path_state.get_color()
         if self.kind != SpotKind.Empty:
             return self.kind.get_color()
         return self.path_state.get_color()
