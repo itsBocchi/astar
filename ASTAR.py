@@ -288,6 +288,8 @@ def main(win, width):
             if pygame.mouse.get_pressed()[0]:  # LEFT CLICK
                 pos = pygame.mouse.get_pos()
                 row, col = get_clicked_pos(pos, ROWS, width)
+                if row >= len(grid) or col >= len(grid[row]):
+                    continue
                 spot = grid[row][col]
                 if not start and spot != end:
                     start = spot
@@ -298,9 +300,11 @@ def main(win, width):
                 elif spot != end and spot != start:
                     spot.make_barrier()
 
-            elif pygame.mouse.get_pressed()[1]:  # MIDDLE CLICK - BLOCKED ZONE
+            elif pygame.mouse.get_pressed()[1] or (event.type == pygame.KEYDOWN and event.key == pygame.K_f):  # MIDDLE CLICK - BLOCKED ZONE
                 pos = pygame.mouse.get_pos()
                 row, col = get_clicked_pos(pos, ROWS, width)
+                if row >= len(grid) or col >= len(grid[row]):
+                    continue
                 spot = grid[row][col]
                 if spot != start and spot != end:
                     spot.make_blocked()
@@ -308,6 +312,8 @@ def main(win, width):
             elif pygame.mouse.get_pressed()[2]:  # RIGHT CLICK - ERASE
                 pos = pygame.mouse.get_pos()
                 row, col = get_clicked_pos(pos, ROWS, width)
+                if row >= len(grid) or col >= len(grid[row]):
+                    continue
                 spot = grid[row][col]
                 spot.reset()
                 if spot == start:
