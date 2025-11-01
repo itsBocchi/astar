@@ -116,7 +116,7 @@ def clear_grid(start, end, grid):
                 spot.reset()
 
 # --- HEURISTIC FUNCTION (OCTILE DISTANCE) ---
-def h(p1, p2):
+def distance(p1, p2):
     """Heuristic that accounts for diagonal movement"""
     x1, y1 = p1
     x2, y2 = p2
@@ -145,7 +145,7 @@ def algorithm(draw_func, grid, start, end):
     g_score = {spot: float("inf") for row in grid for spot in row}
     g_score[start] = 0
     f_score = {spot: float("inf") for row in grid for spot in row}
-    f_score[start] = h(start.get_pos(), end.get_pos())
+    f_score[start] = distance(start.get_pos(), end.get_pos())
     open_set_hash = {start}
     current_lowest = 0
 
@@ -178,7 +178,7 @@ def algorithm(draw_func, grid, start, end):
             if temp_g_score < g_score[neighbor]:
                 came_from[neighbor] = current
                 g_score[neighbor] = temp_g_score
-                f_score[neighbor] = temp_g_score + h(neighbor.get_pos(), end.get_pos())
+                f_score[neighbor] = temp_g_score + distance(neighbor.get_pos(), end.get_pos())
                 if neighbor not in open_set_hash:
                     count += 1
                     open_set.put((f_score[neighbor], count, neighbor))
@@ -288,7 +288,7 @@ def main(win, width):
             if pygame.mouse.get_pressed()[0]:  # LEFT CLICK
                 pos = pygame.mouse.get_pos()
                 row, col = get_clicked_pos(pos, ROWS, width)
-                if row >= len(grid) or col >= len(grid[row]):
+                if row < 0 or row >= len(grid) or col < 0 or col >= len(grid[row]):
                     continue
                 spot = grid[row][col]
                 if not start and spot != end:
@@ -303,7 +303,7 @@ def main(win, width):
             elif pygame.mouse.get_pressed()[1] or (event.type == pygame.KEYDOWN and event.key == pygame.K_f):  # MIDDLE CLICK - BLOCKED ZONE
                 pos = pygame.mouse.get_pos()
                 row, col = get_clicked_pos(pos, ROWS, width)
-                if row >= len(grid) or col >= len(grid[row]):
+                if row < 0 or row >= len(grid) or col < 0 or col >= len(grid[row]):
                     continue
                 spot = grid[row][col]
                 if spot != start and spot != end:
@@ -312,7 +312,7 @@ def main(win, width):
             elif pygame.mouse.get_pressed()[2]:  # RIGHT CLICK - ERASE
                 pos = pygame.mouse.get_pos()
                 row, col = get_clicked_pos(pos, ROWS, width)
-                if row >= len(grid) or col >= len(grid[row]):
+                if row < 0 or row >= len(grid) or col < 0 or col >= len(grid[row]):
                     continue
                 spot = grid[row][col]
                 spot.reset()
