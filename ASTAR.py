@@ -15,6 +15,8 @@ small_font = pygame.font.Font(None, 16)
 last_g_score = None
 last_lowest_cost = float("inf")
 
+IS_MODIFIED = True
+
 # --- COLORS ---
 RED = (255, 0, 0)
 GREEN = (163, 255, 183)
@@ -86,7 +88,9 @@ class Spot:
         return self.row, self.col
 
     def is_empty(self):
-        return self.state == SpotState.Empty
+        if IS_MODIFIED:
+            return self.state == SpotState.Empty
+        return self.state in (SpotState.Barrier, SpotState.Blocked, SpotState.Weighted)
 
     def is_closed(self):
         return self.state == SpotState.Closed
@@ -95,13 +99,19 @@ class Spot:
         return self.state == SpotState.Open
 
     def is_barrier(self):
-        return self.state == SpotState.Barrier
+        if IS_MODIFIED:
+            return self.state == SpotState.Barrier
+        return False
 
     def is_blocked(self):
-        return self.state == SpotState.Blocked
+        if IS_MODIFIED:
+            return self.state == SpotState.Blocked
+        return False
 
     def is_weighted(self):
-        return self.state == SpotState.Weighted
+        if IS_MODIFIED:
+            return self.state == SpotState.Weighted
+        return False
 
     def is_start(self):
         return self.state == SpotState.Start
@@ -166,9 +176,9 @@ class Spot:
 def clear_grid(start, end, grid):
     for row in grid:
         for spot in row:
-            if spot.is_blocked():
+            if spot.state in (SpotState.Blocked, SpotState.Barrier):
                 continue
-            if spot != start and spot != end and not spot.is_barrier():
+            if spot != start and spot != end:
                 spot.reset()
 
 # --- HEURISTIC FUNCTION (OCTILE DISTANCE) ---
@@ -297,6 +307,14 @@ def draw_lowest_cost(win, g_score, current_lowest):
     win.blit(cost_text, (WIDTH - 200, 10))
 
 
+def draw_algorithm_mod(win):
+    if IS_MODIFIED:
+        text = font.render(f"A* modified", True, BLACK)
+    else:
+        text = font.render(f"A* original", True, BLACK)
+    win.blit(text, (10, 10))
+
+
 def draw(win, grid, rows, width, g_score=None, current_lowest=float("inf")):
     win.fill(WHITE)
     for row in grid:
@@ -306,6 +324,7 @@ def draw(win, grid, rows, width, g_score=None, current_lowest=float("inf")):
     if g_score:
         draw_costs(win, grid, g_score)
         draw_lowest_cost(win, g_score, current_lowest)
+    draw_algorithm_mod(win)
     pygame.display.update()
 
 
@@ -395,6 +414,10 @@ def main(win, width):
                     last_g_score = None
                     last_lowest_cost = float("inf")
                     grid = make_grid(ROWS, width)
+
+                if event.key == pygame.K_m:
+                    global IS_MODIFIED
+                    IS_MODIFIED = not IS_MODIFIED
 
     pygame.quit()
 
