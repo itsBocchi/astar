@@ -52,7 +52,10 @@ class Spot:
         return self.color == GREEN
 
     def is_barrier(self):
-        return self.color == BLACK or self.color == RED
+        return self.color == BLACK
+
+    def is_blocked(self):
+        return self.color == RED
 
     def is_weighted(self):
         return self.color == DARK_GREEN
@@ -103,16 +106,22 @@ class Spot:
         for dr, dc in directions:
             r, c = self.row + dr, self.col + dc
             if 0 <= r < self.total_rows and 0 <= c < self.total_rows:
-                if not grid[r][c].is_barrier():
+                spot = grid[r][c]
+                if not spot.is_barrier() and not spot.is_blocked():
                     self.neighbors.append(grid[r][c])
 
     def __lt__(self, other):
         return False
 
+    def __str__(self):
+        return f"Spot<({self.row}, {self.col}, color: {self.color})>"
+
 def clear_grid(start, end, grid):
     for row in grid:
         for spot in row:
-            if spot != start and spot != end and not spot.is_weighted() and not spot.is_barrier():
+            if spot.is_blocked():
+                continue
+            if spot != start and spot != end and not spot.is_barrier():
                 spot.reset()
 
 # --- HEURISTIC FUNCTION (OCTILE DISTANCE) ---
