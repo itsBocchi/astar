@@ -7,7 +7,7 @@ WIDTH = 800
 WIN = pygame.display.set_mode((WIDTH, WIDTH))
 pygame.display.set_caption("A* Pathfinding with Diagonal Movement & Weighted Zones")
 pygame.init()
-font = pygame.font.Font(None, 20)
+font = pygame.font.Font(None, 36)
 small_font = pygame.font.Font(None, 16)
 
 # Global variables to persist costs
