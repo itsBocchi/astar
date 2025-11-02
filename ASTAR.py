@@ -6,6 +6,8 @@ import enum
 # --- WINDOW SETTINGS ---
 WIDTH = 800
 ALPHA = 10
+penalty = 1
+emiters = []
 WIN = pygame.display.set_mode((WIDTH, WIDTH))
 pygame.display.set_caption("A* Pathfinding with Diagonal Movement & Weighted Zones")
 pygame.init()
@@ -56,7 +58,10 @@ class SpotKind(enum.Enum):
             case SpotKind.Blocked:
                 return RED
             case SpotKind.Weighted:
-                return DARK_GREEN
+                r1,g1,b1 = YELLOW
+                r2,g2,b2 = DARK_GREEN
+                new_color = (abs(r1-int(r2*(1-penalty))),abs(g1-int(g2*(1-penalty))),abs(b1-int(b2*(1-penalty))))
+                return new_color
             case SpotKind.Start:
                 return ORANGE
             case SpotKind.End:
@@ -213,6 +218,13 @@ def distance(p1, p2):
     D2 = math.sqrt(2)
     return D * (dx + dy) + (D2 - 2 * D) * min(dx, dy)
 
+def euclidean_distance(p1,p2):
+    x1, y1 = p1
+    x2, y2 = p2
+    return math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
+
+def calculate_penalty(ALPHA,distance):
+    return ALPHA*(1/(distance+1))
 
 # --- RECONSTRUCT PATH ---
 def reconstruct_path(came_from, current, draw):
@@ -404,6 +416,7 @@ def main(win, width):
                 spot = grid[row][col]
                 if spot != start and spot != end:
                     spot.make_blocked()
+                    emiters.append(spot)
 
             elif pygame.mouse.get_pressed()[2]:  # RIGHT CLICK - ERASE
                 pos = pygame.mouse.get_pos()
