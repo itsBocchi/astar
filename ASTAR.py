@@ -6,7 +6,7 @@ import datetime
 
 # --- WINDOW SETTINGS ---
 WIDTH = 800
-ALPHA = 5
+ALPHA = 7
 THINNER = 5
 MIN_PENALTY = 0.1
 emitters = set()
@@ -68,7 +68,7 @@ class SpotKind(enum.Enum):
                 penalty /= THINNER
                 penalty = min(1, penalty)
                 penalty = max(0, penalty)
-                new_color = mix_colors(YELLOW,DARK_BLUE,penalty)
+                new_color = mix_colors(YELLOW, WHITE, penalty)
                 return new_color
             case SpotKind.Start:
                 return ORANGE
