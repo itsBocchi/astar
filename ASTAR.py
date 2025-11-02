@@ -6,9 +6,9 @@ import datetime
 
 # --- WINDOW SETTINGS ---
 WIDTH = 800
-ALPHA = 10
-penalty = 1
-emiters = set()
+ALPHA = 3
+MIN_PENALTY = 0
+emitters = set()
 WIN = pygame.display.set_mode((WIDTH, WIDTH))
 pygame.display.set_caption("A* Pathfinding with Diagonal Movement & Weighted Zones")
 pygame.init()
@@ -55,7 +55,7 @@ class SpotKind(enum.Enum):
     Start = enum.auto()
     End = enum.auto()
 
-    def get_color(self) -> tuple[int, int, int]:
+    def get_color(self, penalty) -> tuple[int, int, int]:
         match self:
             case SpotKind.Empty:
                 return WHITE
@@ -64,14 +64,23 @@ class SpotKind(enum.Enum):
             case SpotKind.Blocked:
                 return RED
             case SpotKind.Weighted:
-                r1,g1,b1 = YELLOW
-                r2,g2,b2 = DARK_GREEN
-                new_color = (abs(r1-int(r2*(1-penalty))),abs(g1-int(g2*(1-penalty))),abs(b1-int(b2*(1-penalty))))
+                penalty = min(1,penalty)
+                penalty = max(0, penalty)
+                new_color = mix_colors(YELLOW,DARK_BLUE,penalty)
                 return new_color
             case SpotKind.Start:
                 return ORANGE
             case SpotKind.End:
                 return TURQUOISE
+
+def mix_colors(color2, color1, penalty):
+    #color1+penalty*(color2-color1)
+    r1,g1,b1 = color1
+    r2,g2,b2 = color2
+    r = int(r1 + penalty * (r2 - r1))
+    g = int(g1 + penalty * (g2 - g1))
+    b = int(b1 + penalty * (b2 - b1))
+    return ((r,g,b))
 
 
 class SpotPathState(enum.Enum):
@@ -106,6 +115,7 @@ class Spot:
         self.neighbors = []
         self.width = width
         self.total_rows = total_rows
+        self.penalty = 0
 
     def get_pos(self):
         return self.row, self.col
@@ -175,9 +185,11 @@ class Spot:
         self.path_state = SpotPathState.Path
 
     def get_color(self) -> tuple[int, int, int]:
-        if self.kind != SpotKind.Empty:
-            return self.kind.get_color()
-        return self.path_state.get_color()
+        if self.path_state != SpotPathState.Empty:
+            return self.path_state.get_color()
+        # Calculate penalty from emitters
+        penalty = self.get_penalty_from_emitters()
+        return self.kind.get_color(penalty)
 
     def draw(self, win):
         color = self.get_color()
@@ -199,6 +211,15 @@ class Spot:
 
     def __lt__(self, other):
         return False
+
+    def get_penalty_from_emitters(self):
+        """Calculate accumulated penalty from all emitters"""
+        accumulated_penalty = 0
+        for emitter in emitters:
+            penalty = calculate_penalty(self.get_pos(), emitter.get_pos())
+            accumulated_penalty += penalty
+        
+        return accumulated_penalty if accumulated_penalty >= MIN_PENALTY else 0
 
     def __str__(self):
         return f"Spot<({self.row}, {self.col}), {self.kind}>"
@@ -225,8 +246,20 @@ def euclidean_distance(p1,p2):
     x2, y2 = p2
     return math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
 
-def calculate_penalty(ALPHA,distance):
+def calculate_penalty(p1,p2):
+    distance = euclidean_distance(p1, p2)
     return ALPHA*(1/(distance+1))
+
+def update_grid_weights(grid):
+    """Update all spots in grid based on emitter penalties"""
+    for row in grid:
+        for spot in row:
+            if spot.kind == SpotKind.Empty:
+                spot.penalty = spot.get_penalty_from_emitters()
+                if spot.penalty >= MIN_PENALTY:
+                    spot.make_weighted()
+                else:
+                    spot.kind = SpotKind.Empty
 
 # --- RECONSTRUCT PATH ---
 def reconstruct_path(came_from, current, draw):
@@ -273,13 +306,13 @@ def algorithm(draw_func, grid, start, end):
             return True
 
         for neighbor in current.neighbors:
-            move_cost = math.sqrt(2) if abs(neighbor.row - current.row) == 1 and abs(neighbor.col - current.col) == 1 else 1
+            base_move_cost = math.sqrt(2) if abs(neighbor.row - current.row) == 1 and abs(neighbor.col - current.col) == 1 else 1
+            
+            # Calculate penalty from emitters
+            emitter_penalty = neighbor.get_penalty_from_emitters()
+            total_move_cost = base_move_cost * (1 + emitter_penalty)
 
-            # Add penalty for weighted tiles
-            if neighbor.is_weighted():
-                move_cost *= 3
-
-            temp_g_score = g_score[current] + move_cost
+            temp_g_score = g_score[current] + total_move_cost
 
             if temp_g_score < g_score[neighbor]:
                 came_from[neighbor] = current
@@ -435,7 +468,8 @@ def main(win, width):
                 spot = grid[row][col]
                 if spot != start and spot != end:
                     spot.make_blocked()
-                    emiters.add(spot)
+                    emitters.add(spot)
+                    update_grid_weights(grid)
 
             elif pygame.mouse.get_pressed()[2]:  # RIGHT CLICK - ERASE
                 pos = pygame.mouse.get_pos()
@@ -448,8 +482,9 @@ def main(win, width):
                     start = None
                 elif spot == end:
                     end = None
-                if spot in emiters:
-                    emiters.remove(spot)
+                if spot in emitters:
+                    emitters.remove(spot)
+                    update_grid_weights(grid)
 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE and start and end:
@@ -469,7 +504,7 @@ def main(win, width):
                     last_g_score = None
                     last_lowest_cost = float("inf")
                     grid = make_grid(ROWS, width)
-                    emiters.clear()
+                    emitters.clear()
 
                 if event.key == pygame.K_m:
                     global IS_MODIFIED
