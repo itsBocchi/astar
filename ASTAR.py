@@ -108,7 +108,7 @@ class Spot:
     def is_empty(self):
         if IS_MODIFIED:
             return self.kind == SpotKind.Empty
-        return self.kind in (SpotKind.Barrier, SpotKind.Blocked, SpotKind.Weighted)
+        return self.kind in (SpotKind.Blocked, SpotKind.Weighted)
 
     def is_closed(self):
         return self.path_state == SpotPathState.Closed
@@ -117,9 +117,7 @@ class Spot:
         return self.path_state == SpotPathState.Open
 
     def is_barrier(self):
-        if IS_MODIFIED:
-            return self.kind == SpotKind.Barrier
-        return False
+        return self.kind == SpotKind.Barrier
 
     def is_blocked(self):
         if IS_MODIFIED:
@@ -203,8 +201,6 @@ class Spot:
 def clear_grid(start, end, grid):
     for row in grid:
         for spot in row:
-            # if spot.kind in (SpotKind.Blocked, SpotKind.Barrier):
-            #     continue
             if spot != start and spot != end:
                 spot.reset_path_state()
 
