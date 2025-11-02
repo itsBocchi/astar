@@ -2,6 +2,7 @@ import pygame
 import math
 from queue import PriorityQueue
 import enum
+import datetime
 
 # --- WINDOW SETTINGS ---
 WIDTH = 800
@@ -33,6 +34,11 @@ GREY = (128, 128, 128)
 TURQUOISE = (99, 214, 187)
 DARK_BLUE = (102, 139, 242)      # Blocked zone
 DARK_GREEN = (73, 147, 166)     # Weighted ring zone
+
+t = datetime.datetime.now()
+# zero
+g_diff_time = t - t
+g_iterations = 0
 
 
 class SpotKind(enum.Enum):
@@ -107,7 +113,7 @@ class Spot:
     def is_empty(self):
         if IS_MODIFIED:
             return self.kind == SpotKind.Empty
-        return self.kind in (SpotKind.Barrier, SpotKind.Blocked, SpotKind.Weighted)
+        return self.kind in (SpotKind.Blocked, SpotKind.Weighted)
 
     def is_closed(self):
         return self.path_state == SpotPathState.Closed
@@ -116,9 +122,7 @@ class Spot:
         return self.path_state == SpotPathState.Open
 
     def is_barrier(self):
-        if IS_MODIFIED:
-            return self.kind == SpotKind.Barrier
-        return False
+        return self.kind == SpotKind.Barrier
 
     def is_blocked(self):
         if IS_MODIFIED:
@@ -197,13 +201,11 @@ class Spot:
         return False
 
     def __str__(self):
-        return f"Spot<({self.row}, {self.col}, {self.kind})>"
+        return f"Spot<({self.row}, {self.col}), {self.kind}>"
 
 def clear_grid(start, end, grid):
     for row in grid:
         for spot in row:
-            # if spot.kind in (SpotKind.Blocked, SpotKind.Barrier):
-            #     continue
             if spot != start and spot != end:
                 spot.reset_path_state()
 
@@ -248,6 +250,11 @@ def algorithm(draw_func, grid, start, end):
     open_set_hash = {start}
     current_lowest = 0
 
+    global g_iterations, g_diff_time
+    g_iterations = 0
+    initial_time = datetime.datetime.now()
+    g_diff_time = initial_time - initial_time
+
     while not open_set.empty():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -284,9 +291,12 @@ def algorithm(draw_func, grid, start, end):
                     open_set_hash.add(neighbor)
                     neighbor.make_open()
 
+        g_diff_time = datetime.datetime.now() - initial_time
         draw_func(g_score, current_lowest)
         if current != start:
             current.make_closed()
+
+        g_iterations += 1
 
     last_g_score = g_score.copy()
     last_lowest_cost = current_lowest
@@ -342,10 +352,18 @@ def draw_lowest_cost(win, g_score, current_lowest):
 
 def draw_algorithm_mod(win):
     if IS_MODIFIED:
-        text = font.render(f"A* modified", True, BLACK)
+        text = font.render("A* modified", True, BLACK)
     else:
-        text = font.render(f"A* original", True, BLACK)
+        text = font.render("A* original", True, BLACK)
     win.blit(text, (10, 10))
+
+def draw_stats(win):
+    text = font.render(f"Iterations {g_iterations}", True, BLACK)
+    win.blit(text, (10, 40))
+
+    text = font.render(f"Time {g_diff_time}", True, BLACK)
+    win.blit(text, (10, 70))
+
 
 
 def draw(win, grid, rows, width, g_score=None, current_lowest=float("inf")):
@@ -358,6 +376,7 @@ def draw(win, grid, rows, width, g_score=None, current_lowest=float("inf")):
         draw_costs(win, grid, g_score)
         draw_lowest_cost(win, g_score, current_lowest)
     draw_algorithm_mod(win)
+    draw_stats(win)
     pygame.display.update()
 
 
