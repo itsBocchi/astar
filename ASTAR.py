@@ -187,7 +187,7 @@ class Spot:
         self.path_state = SpotPathState.Path
 
     def get_color(self) -> tuple[int, int, int]:
-        if self.path_state != SpotPathState.Empty:
+        if self.kind in (SpotKind.Empty, SpotKind.Weighted) and self.path_state != SpotPathState.Empty:
             return self.path_state.get_color()
         # Calculate penalty from emitters
         penalty = self.get_penalty_from_emitters()
@@ -312,7 +312,7 @@ def algorithm(draw_func, grid, start, end):
             
             # Calculate penalty from emitters
             emitter_penalty = neighbor.get_penalty_from_emitters()
-            total_move_cost = base_move_cost * (1 + emitter_penalty)
+            total_move_cost = base_move_cost * (1 + emitter_penalty * 3)
 
             temp_g_score = g_score[current] + total_move_cost
 
