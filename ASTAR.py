@@ -44,6 +44,7 @@ g_diff_time = t - t
 g_iterations = 0
 
 g_path_length = None
+g_nearest_emitter_distance = None
 
 
 class SpotKind(enum.Enum):
@@ -254,7 +255,7 @@ def euclidean_distance(p1,p2):
 
 def calculate_penalty(p1,p2):
     distance = euclidean_distance(p1, p2)
-    return ALPHA * (1 / (distance + 1))
+    return ALPHA * (1 / ((distance + 1)**3))
 
 def update_grid_weights(grid):
     """Update all spots in grid based on emitter penalties"""
@@ -269,12 +270,18 @@ def update_grid_weights(grid):
 
 # --- RECONSTRUCT PATH ---
 def reconstruct_path(came_from, current, draw):
-    global g_path_length
+    global g_path_length, g_nearest_emitter_distance
     g_path_length = 1
+    g_nearest_emitter_distance = float("inf")
     while current in came_from:
         current = came_from[current]
         current.make_path()
         g_path_length += 1
+
+        for emitter in emitters:
+            current_dist = euclidean_distance(current.get_pos(), emitter.get_pos())
+            if current_dist < g_nearest_emitter_distance:
+                g_nearest_emitter_distance = current_dist
         draw()
 
 
@@ -414,6 +421,11 @@ def draw_stats(win):
         win.blit(text, (10, y))
         y += 30
 
+    if g_nearest_emitter_distance is not None:
+        text = font.render(f"Distance to nearest: {g_nearest_emitter_distance}", True, BLACK)
+        win.blit(text, (10, y))
+        y += 30
+
 
 def draw(win, grid, rows, width, g_score=None, current_lowest=float("inf")):
     win.fill(WHITE)
@@ -521,6 +533,9 @@ def main(win, width):
                     last_lowest_cost = float("inf")
                     grid = make_grid(ROWS, width)
                     emitters.clear()
+                    global g_path_length, g_nearest_emitter_distance
+                    g_path_length = None
+                    g_nearest_emitter_distance = None
 
                 if event.key == pygame.K_m:
                     global IS_MODIFIED
