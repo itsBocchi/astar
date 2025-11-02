@@ -7,7 +7,8 @@ import datetime
 # --- WINDOW SETTINGS ---
 WIDTH = 800
 ALPHA = 3
-MIN_PENALTY = 0
+THINNER = 5
+MIN_PENALTY = 0.1
 emitters = set()
 WIN = pygame.display.set_mode((WIDTH, WIDTH))
 pygame.display.set_caption("A* Pathfinding with Diagonal Movement & Weighted Zones")
@@ -64,7 +65,8 @@ class SpotKind(enum.Enum):
             case SpotKind.Blocked:
                 return RED
             case SpotKind.Weighted:
-                penalty = min(1,penalty)
+                penalty /= THINNER
+                penalty = min(1, penalty)
                 penalty = max(0, penalty)
                 new_color = mix_colors(YELLOW,DARK_BLUE,penalty)
                 return new_color
