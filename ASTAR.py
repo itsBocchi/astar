@@ -6,7 +6,7 @@ import datetime
 
 # --- WINDOW SETTINGS ---
 WIDTH = 800
-ALPHA = 3
+ALPHA = 5
 THINNER = 5
 MIN_PENALTY = 0.1
 emitters = set()
@@ -408,7 +408,7 @@ def draw(win, grid, rows, width, g_score=None, current_lowest=float("inf")):
             spot.draw(win)
     draw_grid(win, rows, width)
     if g_score:
-        draw_costs(win, grid, g_score)
+        # draw_costs(win, grid, g_score)
         draw_lowest_cost(win, g_score, current_lowest)
     draw_algorithm_mod(win)
     draw_stats(win)
