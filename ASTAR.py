@@ -6,7 +6,7 @@ import datetime
 
 # --- WINDOW SETTINGS ---
 WIDTH = 800
-ALPHA = 7
+ALPHA = 40
 THINNER = 5
 MIN_PENALTY = 0.1
 emitters = set()
@@ -24,17 +24,19 @@ IS_MODIFIED = True
 
 # --- COLORS ---
 RED = (255, 0, 0)
-GREEN = (163, 255, 183)
+GREEN = (30, 255, 30)
 BLUE = (0, 255, 0)
 YELLOW = (255, 255, 0)
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
-PURPLE = (247, 146, 215)
+PURPLE = (0xB0, 0x0B, 0x69)
 ORANGE = (255, 165, 0)
 GREY = (128, 128, 128)
 TURQUOISE = (99, 214, 187)
-DARK_BLUE = (102, 139, 242)      # Blocked zone
-DARK_GREEN = (73, 147, 166)     # Weighted ring zone
+DARK_BLUE = (102, 139, 242)
+DARK_GREEN = (73, 147, 166)
+BROWN = (86, 43, 0)
+VIOLET = (240, 32, 204)
 
 t = datetime.datetime.now()
 # zero
@@ -71,9 +73,9 @@ class SpotKind(enum.Enum):
                 new_color = mix_colors(YELLOW, WHITE, penalty)
                 return new_color
             case SpotKind.Start:
-                return ORANGE
+                return BROWN
             case SpotKind.End:
-                return TURQUOISE
+                return PURPLE
 
 def mix_colors(color2, color1, penalty):
     #color1+penalty*(color2-color1)
@@ -102,7 +104,7 @@ class SpotPathState(enum.Enum):
             case SpotPathState.Open:
                 return GREEN
             case SpotPathState.Path:
-                return PURPLE
+                return VIOLET
 
 
 # --- SPOT CLASS ---
@@ -190,7 +192,7 @@ class Spot:
         if self.kind in (SpotKind.Empty, SpotKind.Weighted) and self.path_state != SpotPathState.Empty:
             return self.path_state.get_color()
         # Calculate penalty from emitters
-        penalty = self.get_penalty_from_emitters()
+        penalty = self.get_penalty_from_emitters() // 4
         return self.kind.get_color(penalty)
 
     def draw(self, win):
@@ -223,7 +225,7 @@ class Spot:
         
         return accumulated_penalty if accumulated_penalty >= MIN_PENALTY else 0
 
-    def __str__(self):
+    def __repr__(self):
         return f"Spot<({self.row}, {self.col}), {self.kind}>"
 
 def clear_grid(start, end, grid):
@@ -250,7 +252,7 @@ def euclidean_distance(p1,p2):
 
 def calculate_penalty(p1,p2):
     distance = euclidean_distance(p1, p2)
-    return ALPHA*(1/(distance+1))
+    return ALPHA * (1 / (distance + 1))
 
 def update_grid_weights(grid):
     """Update all spots in grid based on emitter penalties"""
@@ -312,7 +314,7 @@ def algorithm(draw_func, grid, start, end):
             
             # Calculate penalty from emitters
             emitter_penalty = neighbor.get_penalty_from_emitters()
-            total_move_cost = base_move_cost * (1 + emitter_penalty * 3)
+            total_move_cost = base_move_cost * (1 + emitter_penalty)
 
             temp_g_score = g_score[current] + total_move_cost
 
