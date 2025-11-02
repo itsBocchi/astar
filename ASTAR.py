@@ -6,7 +6,7 @@ import datetime
 
 # --- WINDOW SETTINGS ---
 WIDTH = 800
-ALPHA = 40
+ALPHA = 20
 THINNER = 5
 MIN_PENALTY = 0.1
 emitters = set()
@@ -42,6 +42,8 @@ t = datetime.datetime.now()
 # zero
 g_diff_time = t - t
 g_iterations = 0
+
+g_path_length = None
 
 
 class SpotKind(enum.Enum):
@@ -267,9 +269,12 @@ def update_grid_weights(grid):
 
 # --- RECONSTRUCT PATH ---
 def reconstruct_path(came_from, current, draw):
+    global g_path_length
+    g_path_length = 1
     while current in came_from:
         current = came_from[current]
         current.make_path()
+        g_path_length += 1
         draw()
 
 
@@ -395,12 +400,19 @@ def draw_algorithm_mod(win):
     win.blit(text, (10, 10))
 
 def draw_stats(win):
-    text = font.render(f"Iterations {g_iterations}", True, BLACK)
-    win.blit(text, (10, 40))
+    y = 10 + 30
+    text = font.render(f"Iterations: {g_iterations}", True, BLACK)
+    win.blit(text, (10, y))
+    y += 30
 
-    text = font.render(f"Time {g_diff_time}", True, BLACK)
-    win.blit(text, (10, 70))
+    text = font.render(f"Time: {g_diff_time}", True, BLACK)
+    win.blit(text, (10, y))
+    y += 30
 
+    if g_path_length is not None:
+        text = font.render(f"Path length: {g_path_length}", True, BLACK)
+        win.blit(text, (10, y))
+        y += 30
 
 
 def draw(win, grid, rows, width, g_score=None, current_lowest=float("inf")):
