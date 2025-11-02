@@ -8,7 +8,7 @@ import datetime
 WIDTH = 800
 ALPHA = 10
 penalty = 1
-emiters = []
+emiters = set()
 WIN = pygame.display.set_mode((WIDTH, WIDTH))
 pygame.display.set_caption("A* Pathfinding with Diagonal Movement & Weighted Zones")
 pygame.init()
@@ -435,7 +435,7 @@ def main(win, width):
                 spot = grid[row][col]
                 if spot != start and spot != end:
                     spot.make_blocked()
-                    emiters.append(spot)
+                    emiters.add(spot)
 
             elif pygame.mouse.get_pressed()[2]:  # RIGHT CLICK - ERASE
                 pos = pygame.mouse.get_pos()
@@ -448,6 +448,8 @@ def main(win, width):
                     start = None
                 elif spot == end:
                     end = None
+                if spot in emiters:
+                    emiters.remove(spot)
 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE and start and end:
@@ -467,6 +469,7 @@ def main(win, width):
                     last_g_score = None
                     last_lowest_cost = float("inf")
                     grid = make_grid(ROWS, width)
+                    emiters.clear()
 
                 if event.key == pygame.K_m:
                     global IS_MODIFIED
