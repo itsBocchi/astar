@@ -195,7 +195,7 @@ class Spot:
         if self.kind in (SpotKind.Empty, SpotKind.Weighted) and self.path_state != SpotPathState.Empty:
             return self.path_state.get_color()
         # Calculate penalty from emitters
-        penalty = self.get_penalty_from_emitters() // 4
+        penalty = self.get_penalty_from_emitters() * 2
         return self.kind.get_color(penalty)
 
     def draw(self, win):
@@ -254,8 +254,10 @@ def euclidean_distance(p1,p2):
     return math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
 
 def calculate_penalty(p1,p2):
+    if not IS_MODIFIED:
+        return 0.0
     distance = euclidean_distance(p1, p2)
-    return ALPHA * (1 / ((distance + 1)**3))
+    return ALPHA * (1.0 / ((distance + 1)**2))
 
 def update_grid_weights(grid):
     """Update all spots in grid based on emitter penalties"""
