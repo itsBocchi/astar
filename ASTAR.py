@@ -6,8 +6,8 @@ import datetime
 
 # --- WINDOW SETTINGS ---
 WIDTH = 800
-ALPHA = 20
-THINNER = 5
+ALPHA = 30
+THINNER = 1
 MIN_PENALTY = 0.1
 emitters = set()
 WIN = pygame.display.set_mode((WIDTH, WIDTH))
