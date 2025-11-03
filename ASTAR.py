@@ -7,7 +7,7 @@ import datetime
 # --- WINDOW SETTINGS ---
 WIDTH = 800
 ALPHA = 30
-THINNER = 1
+THINNER = 2
 MIN_PENALTY = 0.1
 emitters = set()
 WIN = pygame.display.set_mode((WIDTH, WIDTH))
@@ -39,8 +39,9 @@ BROWN = (86, 43, 0)
 VIOLET = (240, 32, 204)
 
 t = datetime.datetime.now()
+ZERO_TIME = t - t
 # zero
-g_diff_time = t - t
+g_diff_time = ZERO_TIME
 g_iterations = 0
 
 g_path_length = None
@@ -195,7 +196,7 @@ class Spot:
         if self.kind in (SpotKind.Empty, SpotKind.Weighted) and self.path_state != SpotPathState.Empty:
             return self.path_state.get_color()
         # Calculate penalty from emitters
-        penalty = self.get_penalty_from_emitters() * 2
+        penalty = self.get_penalty_from_emitters()
         return self.kind.get_color(penalty)
 
     def draw(self, win):
@@ -273,12 +274,13 @@ def update_grid_weights(grid):
 # --- RECONSTRUCT PATH ---
 def reconstruct_path(came_from, current, draw):
     global g_path_length, g_nearest_emitter_distance
-    g_path_length = 1
+    g_path_length = 0
     g_nearest_emitter_distance = float("inf")
     while current in came_from:
+        prev = current
         current = came_from[current]
         current.make_path()
-        g_path_length += 1
+        g_path_length += euclidean_distance(current.get_pos(), prev.get_pos())
 
         for emitter in emitters:
             current_dist = euclidean_distance(current.get_pos(), emitter.get_pos())
@@ -423,7 +425,7 @@ def draw_stats(win):
         win.blit(text, (10, y))
         y += 30
 
-    if g_nearest_emitter_distance is not None:
+    if g_nearest_emitter_distance is not None and not math.isinf(g_nearest_emitter_distance):
         text = font.render(f"Distance to nearest: {g_nearest_emitter_distance}", True, BLACK)
         win.blit(text, (10, y))
         y += 30
@@ -535,13 +537,16 @@ def main(win, width):
                     last_lowest_cost = float("inf")
                     grid = make_grid(ROWS, width)
                     emitters.clear()
-                    global g_path_length, g_nearest_emitter_distance
+                    global g_diff_time, g_iterations, g_path_length, g_nearest_emitter_distance
+                    g_diff_time = ZERO_TIME
+                    g_iterations = 0
                     g_path_length = None
                     g_nearest_emitter_distance = None
 
                 if event.key == pygame.K_m:
                     global IS_MODIFIED
                     IS_MODIFIED = not IS_MODIFIED
+                    update_grid_weights(grid)
 
     pygame.quit()
 
