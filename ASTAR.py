@@ -11,7 +11,7 @@ THINNER = 5
 MIN_PENALTY = 0.1
 emitters = set()
 WIN = pygame.display.set_mode((WIDTH, WIDTH))
-pygame.display.set_caption("A* Pathfinding with Diagonal Movement & Weighted Zones")
+pygame.display.set_caption("A* Pathfinding and modified A*")
 pygame.init()
 font = pygame.font.Font(None, 36)
 small_font = pygame.font.Font(None, 16)
